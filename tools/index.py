@@ -29,6 +29,7 @@ CONTENT = Path("content")
 DB = Path("build/site.db")
 OUT_SEARCH = Path("static/search.json")
 OUT_TAGS = Path("data/tags.json")
+OUT_STATS = Path("data/stats.json")
 
 SCHEMA = """
 CREATE TABLE posts (
@@ -42,6 +43,10 @@ CREATE TABLE tags (
   url TEXT NOT NULL REFERENCES posts(url),
   tag TEXT NOT NULL,
   PRIMARY KEY (url, tag)
+);
+CREATE TABLE words (
+    url TEXT PRIMARY KEY REFERENCES posts(url),
+    n   INTEGER NOT NULL
 );
 """
 
@@ -65,7 +70,7 @@ FROM (
   SELECT tag, COUNT(*) AS total FROM tags GROUP BY tag ORDER BY total DESC, tag
 )
 """
-
+Q_STATS = "SELECT json_object('total_words', COALESCE(SUM(n), 0)) FROM words;"
 # --- funciones puras ---------------------------------------------------------
 
 def split_front_matter(text):
@@ -127,14 +132,19 @@ def read_page(path):
         "date": str(meta.get("date", "")),
         "summary": meta.get("description") or shorten(text),
         "tags": tags if isinstance(tags, list) else [tags],
-        "draft": meta.get("draft", False) is True,
+        "draft": bool(meta.get("draft", False)),
         "text": text,
     }
 
 
 def read_all():
     files = (p for p in sorted(CONTENT.rglob("*.md")) if p.name != "_index.md")
-    return [page for page in map(read_page, files) if not page["draft"]]
+    include_drafts = "--drafts" in sys.argv
+    return [
+        page
+        for page in map(read_page, files)
+        if include_drafts or not page["draft"]
+    ]
 
 
 # --- efectos: disco y SQL ----------------------------------------------------
@@ -150,6 +160,9 @@ def build_db(pages):
     con.executemany(
         "INSERT OR IGNORE INTO tags(url, tag) VALUES (?, ?)",
         [(p["url"], t) for p in pages for t in p["tags"]])
+    con.executemany(
+        "INSERT INTO words(url, n) VALUES (?, ?)",
+        [(p["url"], len(p["text"].split())) for p in pages],)
     con.commit()
     return con
 
@@ -166,6 +179,7 @@ def main():
     con = build_db(pages)
     export(con, Q_SEARCH, OUT_SEARCH)
     export(con, Q_TAGS, OUT_TAGS)
+    export(con, Q_STATS, OUT_STATS)
     con.close()
     print(f"index: {len(pages)} páginas → {OUT_SEARCH}, {OUT_TAGS}")
 

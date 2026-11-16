@@ -13,6 +13,11 @@
 // "Árbol" → "arbol": minúsculas y sin acentos
 const normalize = s => s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
 
+const countMatches = (haystack, needle) => {
+  if (!needle) return 0;
+  return normalize(haystack).split(needle).length - 1;
+};
+
 const terms = query => normalize(query).split(/\s+/).filter(Boolean);
 
 const haystack = post => normalize(`${post.title} ${post.tags.join(" ")} ${post.text}`);
@@ -20,9 +25,18 @@ const haystack = post => normalize(`${post.title} ${post.tags.join(" ")} ${post.
 // Un post coincide si contiene TODOS los términos
 const matches = ts => post => ts.every(t => haystack(post).includes(t));
 
-const search = (posts, query) => {
-  const ts = terms(query);
-  return ts.length ? posts.filter(matches(ts)) : [];
+const searchPosts = (posts, query) => {
+  const q = normalize(query.trim());
+  if (!q) return [];
+
+return posts
+    .map(post => {
+      const titleHits = countMatches(post.title, q) * 3;
+      const bodyHits = countMatches(post.body || post.summary, q);
+      return { ...post, score: titleHits + bodyHits };
+    })
+    .filter(post => post.score > 0)
+    .sort((a, b) => b.score - a.score);
 };
 
 // --- efectos (DOM) ----------------------------------------------------------

@@ -139,9 +139,19 @@ git log --format='%h %ad %s' --date=iso | head -20
 
 ```
 ## Feedback
-- Qué ha ido bien: …
-- A mejorar: …
+- Qué ha ido bien: hacer la practica mediante un repositorio la facilita mucho
+- A mejorar: he tenido problemas al hacer los commits
 - ¿Has pensado en usar `git` desde la terminal para hacer los cambios... a lo Pro? ;-)
+No se como es a lo pro :(
 ```
 
+## Cambios realizados
+
+A continuación se detallan las mejoras implementadas sobre el flujo original (`Markdown` ➔ `Python/SQLite` ➔ `JSON` ➔ `Hugo`):
+
+1. **Etiquetado y categorización (Ejercicio 1):** Se ha añadido nuevo contenido en `content/` con metadatos `tags` en formato lista YAML (`[sql, ...]`). El script `tools/index.py` los normaliza e inserta en la tabla relacional `tags`, agregándolos mediante `GROUP BY` y `COUNT` hacia `data/tags.json` para su renderizado en la portada de Hugo.
+2. **Indexación condicional de borradores (Ejercicio 2):** Se ha modificado `read_page()` y `read_all()` en `tools/index.py` para capturar el atributo `draft` del front matter y aceptar el parámetro `--drafts` desde `sys.argv`. De este modo, el buscador sincroniza su comportamiento con `hugo server -D` al ejecutar `make serve`.
+3. **Conteo relacional de palabras (Ejercicio 3):** Se ha ampliado el esquema de `build/site.db` creando la tabla `words(url, n)` vinculada por clave foránea a `posts(url)`. Durante la construcción de la base de datos se calcula el número de palabras de cada artículo, se exporta la suma total (`SUM(n)`) a `data/stats.json` y se muestra dinámicamente en el pie de página (`layouts/partials/footer.html`) mediante `hugo.Data.stats`.
+4. **Ordenación de búsqueda por relevancia (Ejercicio 4):** En `static/search.js` se ha refactorizado la búsqueda manteniendo funciones puras (`map`, `filter` y `sort`). Se ha añadido `countMatches()` para calcular una puntuación de relevancia por post (ponderando x3 las coincidencias en el título frente al cuerpo) y ordenar los resultados de forma descendente sin mutar los datos originales.
+5. **Despliegue continuo en GitHub Pages (Ejercicio 5):** Se ha configurado un flujo de GitHub Actions (`.github/workflows/hugo.yml`) que ejecuta `make build` en cada push a `main` y publica el directorio estático `public/`. En producción no se ejecuta ningún proceso de backend ni motor SQLite; el servidor únicamente entrega ficheros estáticos (`HTML`, `CSS`, `JS` y `search.json`).
 "Recuerda ... KISS!" :-)

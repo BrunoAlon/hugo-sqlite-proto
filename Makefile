@@ -8,8 +8,9 @@ index:   ## Markdown → SQLite → static/search.json + data/tags.json
 build: index   ## Genera el sitio estático en public/ (esto es lo que se despliega)
 	hugo --gc --minify
 
-serve: index   ## Servidor local con recarga: http://localhost:1313/
-	hugo server
+serve:
+	python3 tools/index.py --drafts
+	hugo server -D
 
 check: index   ## Valida que los JSON generados son JSON de verdad
 	python3 -m json.tool static/search.json > /dev/null

@@ -114,3 +114,50 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def transformar_pagina(pagina: dict, user_id: int = 1) -> dict:
+    slug = pagina["slug"]
+    return {
+        "title": pagina["title"],
+        "body": pagina["body"],
+        "public": 0 if pagina.get("draft", False) else 1,
+        "show_in_list": 1,
+        "list_order": 0,
+        "clean": slug,
+        "url": slug,
+        "user_id": user_id,
+        "parent_id": 0,
+        "created_at": normalizar_fecha(pagina["date"]),
+        "updated_at": FECHA_NULA,
+    }
+
+def cargar_paginas(ruta_db: pathlib.Path, rutas_md: list[pathlib.Path], user_id: int = 1) -> int:
+    con = sqlite3.connect(ruta_db)
+    insertadas = 0
+    try:
+        cur = con.cursor()
+        with con:
+            for ruta in rutas_md:
+                if not ruta.exists():
+                    continue
+                meta, cuerpo = parse_front_matter(ruta.read_text(encoding="utf-8"))
+                datos = {
+                    "slug": ruta.stem,
+                    "title": meta.get("title", ruta.stem),
+                    "date": str(meta.get("date", "2026-01-01")),
+                    "draft": bool(meta.get("draft", False)),
+                    "body": cuerpo.strip(),
+                }
+                fila = transformar_pagina(datos, user_id=user_id)
+                cur.execute("SELECT 1 FROM pages WHERE clean = ?", (fila["clean"],))
+                if not cur.fetchone():
+                    cur.execute(
+                        """INSERT INTO pages (title, body, public, show_in_list, list_order, clean, url, user_id, parent_id, created_at, updated_at)
+                           VALUES (:title, :body, :public, :show_in_list, :list_order, :clean, :url, :user_id, :parent_id, :created_at, :updated_at)""",
+                        fila,
+                    )
+                    insertadas += 1
+                    print(f"página creada  {fila['clean']}")
+        return insertadas
+    finally:
+        con.close()

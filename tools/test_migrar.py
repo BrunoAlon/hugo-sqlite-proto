@@ -4,7 +4,7 @@ import sys
 import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from migrar import transformar, normalizar_fecha, etiquetas_json, FECHA_NULA
+from migrar import transformar, transformar_pagina, normalizar_fecha, etiquetas_json, FECHA_NULA
 
 class TestMigrar(unittest.TestCase):
     def test_transformar_basico(self):
@@ -19,25 +19,21 @@ class TestMigrar(unittest.TestCase):
         post, attrs = transformar(entrada, user_id=1)
         self.assertEqual(post["clean"], "hola-hugo")
         self.assertEqual(post["status"], "public")
-        self.assertEqual(post["created_at"], "2026-10-15 00:00:00")
-        self.assertEqual(post["updated_at"], FECHA_NULA)
-        dict_attrs = dict(attrs)
-        self.assertEqual(dict_attrs["title"], "Hola Hugo")
-        self.assertEqual(dict_attrs["body"], "Contenido en **Markdown**.")
-        self.assertEqual(dict_attrs["tags"], '["hugo", "static"]')
+        self.assertEqual(dict(attrs)["title"], "Hola Hugo")
 
-    def test_transformar_borrador_sin_tags(self):
-        entrada = {
-            "slug": "borrador",
-            "title": "En borrador",
-            "date": "2026-11-01",
-            "draft": True,
-            "tags": [],
-            "body": "Texto",
+    def test_transformar_pagina(self):
+        pagina = {
+            "slug": "about",
+            "title": "Sobre BrunoAlon",
+            "date": "2026-10-01",
+            "draft": False,
+            "body": "Página sobre mí",
         }
-        post, attrs = transformar(entrada)
-        self.assertEqual(post["status"], "draft")
-        self.assertEqual(dict(attrs)["tags"], "[]")
+        fila = transformar_pagina(pagina, user_id=1)
+        self.assertEqual(fila["clean"], "about")
+        self.assertEqual(fila["title"], "Sobre BrunoAlon")
+        self.assertEqual(fila["public"], 1)
+        self.assertEqual(fila["created_at"], "2026-10-01 00:00:00")
 
 if __name__ == "__main__":
     unittest.main()

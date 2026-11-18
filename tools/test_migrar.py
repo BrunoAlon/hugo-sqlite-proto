@@ -49,5 +49,11 @@ class TestMigrar(unittest.TestCase):
         post, _ = transformar(entrada, user_id=1)
         self.assertEqual(post["user_id"], 2)
 
+
+    def test_etiqueta_numerica_2026(self):
+        resultado = etiquetas_json([2026, "sql"])
+        self.assertIn('"2026"', resultado)
+        self.assertNotIn(': 2026', resultado)
+
 if __name__ == "__main__":
     unittest.main()

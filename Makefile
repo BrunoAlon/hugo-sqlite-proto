@@ -27,3 +27,11 @@ check-invites:   ## [profesor] Lista invitaciones de colaborador pendientes (gh 
 help:   ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: test migrar
+test:
+	PYTHONPATH=tools python3 -m unittest discover -s tools -p 'test_*.py'
+
+migrar:
+	@test -n "$(DESTINO)" || (echo 'Uso: make migrar DESTINO=/ruta/a/copia.sqlite [SIMULACRO=1]' && exit 1)
+	PYTHONPATH=tools python3 tools/migrar.py "$(DESTINO)" $(if $(SIMULACRO),--simulacro,)

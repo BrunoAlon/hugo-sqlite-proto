@@ -35,5 +35,19 @@ class TestMigrar(unittest.TestCase):
         self.assertEqual(fila["public"], 1)
         self.assertEqual(fila["created_at"], "2026-10-01 00:00:00")
 
+
+    def test_transformar_con_autor_front_matter(self):
+        entrada = {
+            "slug": "post-autor",
+            "title": "Post con autor",
+            "date": "2026-10-20",
+            "draft": False,
+            "tags": [],
+            "author": 2,
+            "body": "Texto",
+        }
+        post, _ = transformar(entrada, user_id=1)
+        self.assertEqual(post["user_id"], 2)
+
 if __name__ == "__main__":
     unittest.main()

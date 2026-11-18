@@ -161,3 +161,26 @@ def cargar_paginas(ruta_db: pathlib.Path, rutas_md: list[pathlib.Path], user_id:
         return insertadas
     finally:
         con.close()
+
+def extraer_desde_db(ruta_site_db: pathlib.Path) -> list[dict]:
+    con = sqlite3.connect(ruta_site_db)
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT url, title, date, body FROM posts ORDER BY url")
+        filas_posts = cur.fetchall()
+        entradas = []
+        for url, title, date, body in filas_posts:
+            slug = url.strip("/").split("/")[-1]
+            cur.execute("SELECT tag FROM tags WHERE url = ? ORDER BY tag", (url,))
+            tags = [r[0] for r in cur.fetchall()]
+            entradas.append({
+                "slug": slug,
+                "title": title,
+                "date": str(date),
+                "draft": False,
+                "tags": tags,
+                "body": body,
+            })
+        return entradas
+    finally:
+        con.close()
